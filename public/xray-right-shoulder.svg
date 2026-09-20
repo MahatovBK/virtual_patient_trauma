@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" role="img" aria-labelledby="title desc">
+  <title id="title">Рентген правого плечевого сустава</title>
+  <desc id="desc">Схематичный рентгеновский снимок с передним вывихом плеча</desc>
+  <rect width="900" height="620" fill="#111827"/>
+  <text x="34" y="48" fill="#d1d5db" font-family="Arial" font-size="24">RIGHT SHOULDER - AP VIEW</text>
+  <g fill="none" stroke="#e5e7eb" stroke-linecap="round">
+    <path stroke-width="34" d="M460 75 C430 155 432 215 480 265 C532 319 560 361 548 438 C540 492 518 531 493 568"/>
+    <path stroke="#f9fafb" stroke-width="25" d="M492 282 C548 327 599 369 659 413 C704 446 749 468 805 479"/>
+    <ellipse stroke="#f9fafb" stroke-width="20" cx="625" cy="412" rx="56" ry="49"/>
+    <path stroke="#9ca3af" stroke-width="16" d="M477 260 C530 255 579 277 613 314"/>
+    <path stroke="#9ca3af" stroke-width="14" d="M407 101 C383 186 391 236 438 293"/>
+  </g>
+  <circle cx="625" cy="412" r="68" fill="none" stroke="#f87171" stroke-width="5" stroke-dasharray="10 10"/>
+  <text x="34" y="575" fill="#9ca3af" font-family="Arial" font-size="20">Учебная иллюстрация: головка плечевой кости смещена</text>
+</svg>
