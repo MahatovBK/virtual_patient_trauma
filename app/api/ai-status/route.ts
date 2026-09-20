@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requestGemini } from "../../lib/gemini";
 
 export async function GET() {
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+  const model = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ configured: false, reachable: false, model });
   }

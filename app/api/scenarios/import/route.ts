@@ -54,7 +54,7 @@ async function createScenarioWithGemini(text: string): Promise<StoredScenario | 
   if (!process.env.GEMINI_API_KEY) return null;
 
   try {
-    const data = await requestGemini(process.env.GEMINI_MODEL ?? "gemini-2.5-flash", process.env.GEMINI_API_KEY, {
+    const data = await requestGemini(process.env.GEMINI_MODEL ?? "gemini-3.6-flash", process.env.GEMINI_API_KEY, {
       systemInstruction: { parts: [{ text: "Ты преобразуешь медицинскую клиническую задачу в JSON-сценарий для виртуального пациента. Не ставь диагноз в описании для студента. Извлеки факты пациента, жалобы, анамнез, нормальные показатели, ответы на вопросы и правильный диагноз. Верни только валидный JSON без markdown." }] },
       contents: [{ role: "user", parts: [{ text }] }],
       generationConfig: {

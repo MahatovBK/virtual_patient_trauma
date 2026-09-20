@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   if (process.env.GEMINI_API_KEY) {
     try {
-      const aiData = await requestGemini(process.env.GEMINI_MODEL ?? "gemini-2.5-flash", process.env.GEMINI_API_KEY, {
+      const aiData = await requestGemini(process.env.GEMINI_MODEL ?? "gemini-3.6-flash", process.env.GEMINI_API_KEY, {
         systemInstruction: {
           parts: [{ text: `Ты виртуальный пациент в учебной клинической симуляции. Отвечай только от лица пациента, естественно и кратко. Не ставь диагноз, не давай подсказок студенту и не придумывай факты, которых нет в сценарии. Сценарий: ${scenario.description}. Пациент: ${scenario.patient}.` }],
         },
