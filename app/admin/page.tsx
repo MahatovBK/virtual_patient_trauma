@@ -68,7 +68,12 @@ export default function AdminPage() {
     formData.append("file", file);
     formData.append("mediaType", mediaType);
     const response = await fetch(`/api/scenarios/${scenarioId}`, { method: "PATCH", body: formData });
-    setMessage(response.ok ? "Изображение заменено." : "Не удалось заменить изображение.");
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      setMessage("Изображение заменено.");
+    } else {
+      setError(data.error ?? "Не удалось заменить изображение.");
+    }
   }
 
   async function deleteScenario(scenarioId: string) {

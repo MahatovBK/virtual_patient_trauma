@@ -22,26 +22,27 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
-  const formData = await request.formData();
-  const file = formData.get("file");
-  const mediaType = formData.get("mediaType");
-  const type = mediaType === "ecg" ? "ecg" : mediaType === "xray" ? "xray" : null;
+  try {
+    const { id } = await context.params;
+    const formData = await request.formData();
+    const file = formData.get("file");
+    const mediaType = formData.get("mediaType");
+    const type = mediaType === "ecg" ? "ecg" : mediaType === "xray" ? "xray" : null;
 
-  if (!(file instanceof File) || file.size === 0 || !type) {
-    return NextResponse.json({ error: "Нужны file и mediaType (xray или ecg)" }, { status: 400 });
-  }
+    if (!(file instanceof File) || file.size === 0 || !type) {
+      return NextResponse.json({ error: "Нужны file и mediaType (xray или ecg)" }, { status: 400 });
+    }
 
-  const scenarios = await readScenarios() as ScenarioDefinition[];
-  const scenario = scenarios.find((item) => item.id === id);
-  if (!scenario) return NextResponse.json({ error: "Сценарий не найден" }, { status: 404 });
+    const scenarios = await readScenarios() as ScenarioDefinition[];
+    const scenario = scenarios.find((item) => item.id === id);
+    if (!scenario) return NextResponse.json({ error: "Сценарий не найден" }, { status: 404 });
 
-  const uploadDirectory = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDirectory, { recursive: true });
-  const extension = path.extname(file.name) || ".bin";
-  const fileName = `${id}-${type}-${Date.now()}${extension}`;
-  const url = `/uploads/${fileName}`;
-  await writeFile(path.join(uploadDirectory, fileName), Buffer.from(await file.arrayBuffer()));
+    const uploadDirectory = path.join(process.cwd(), "public", "uploads");
+    await mkdir(uploadDirectory, { recursive: true });
+    const extension = path.extname(file.name) || ".bin";
+    const fileName = `${id}-${type}-${Date.now()}${extension}`;
+    const url = `/uploads/${fileName}`;
+    await writeFile(path.join(uploadDirectory, fileName), Buffer.from(await file.arrayBuffer()));
 
   scenario.media = [...(scenario.media ?? []).filter((item) => item.type !== type), {
     type,
@@ -63,6 +64,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   if (type === "xray") scenario.xrayImage = url;
-  await writeFile(scenariosPath, `${JSON.stringify(scenarios, null, 2)}\n`, "utf8");
-  return NextResponse.json({ scenario });
+    await writeFile(scenariosPath, `${JSON.stringify(scenarios, null, 2)}\n`, "utf8");
+    return NextResponse.json({ scenario });
+  } catch (error) {
+    console.error("Media replacement failed", error);
+    return NextResponse.json({ error: "Онлайн-хранилище не подключено. На Vercel замена файлов требует Supabase Storage или Vercel Blob." }, { status: 503 });
+  }
 }
