@@ -16,9 +16,11 @@ export async function POST(request: Request) {
 
   const diagnosisWasStated = /диагноз|считаю|предполагаю|это вывих|это перелом/i.test(question);
   if (diagnosisWasStated) {
-    const correctDiagnosis = scenario.diagnosis
-      ? question.includes("вывих") && question.includes("плеч")
-      : false;
+    const diagnosis = scenario.diagnosis?.toLowerCase() ?? "";
+    const correctDiagnosis = (diagnosis.includes("вывих") && question.includes("вывих") && question.includes("плеч"))
+      || (diagnosis.includes("перелом") && question.includes("перелом") && (question.includes("лодыж") || question.includes("голеностоп")))
+      || (diagnosis.includes("перелом") && question.includes("перелом") && question.includes("запяст"))
+      || Boolean(scenario.diagnosisKeywords?.length && scenario.diagnosisKeywords.every((keyword) => question.includes(keyword)));
 
     return NextResponse.json({
       answer: correctDiagnosis
@@ -62,9 +64,10 @@ export async function POST(request: Request) {
     }
   }
 
-  const matchingRule = scenario.answerRules.find((rule) =>
-    rule.keywords.some((keyword) => question.includes(keyword)),
-  );
+  const matchingRule = scenario.answerRules
+    .map((rule) => ({ rule, matchLength: Math.max(0, ...rule.keywords.filter((keyword) => question.includes(keyword)).map((keyword) => keyword.length)) }))
+    .filter((item) => item.matchLength > 0)
+    .sort((left, right) => right.matchLength - left.matchLength)[0]?.rule;
   const variants = matchingRule?.answerVariants;
   const answer = variants?.length
     ? variants[question.length % variants.length]

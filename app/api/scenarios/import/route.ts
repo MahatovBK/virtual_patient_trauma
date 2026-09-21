@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { appendScenario, readScenarios } from "../../../data/scenario-store";
+import { isSupabaseConfigured, uploadSupabaseMedia } from "../../../data/supabase-store";
 import { requestGemini } from "../../../lib/gemini";
 
 type AnswerRule = { keywords: string[]; answer: string; imageUrl?: string };
@@ -12,6 +13,7 @@ type StoredScenario = {
   difficulty: string;
   patient: string;
   diagnosis?: string;
+  diagnosisKeywords?: string[];
   answerRules: AnswerRule[];
   defaultAnswer: string;
   media?: Array<{ type: "xray" | "ecg"; label: string; url: string }>;
@@ -67,9 +69,10 @@ async function createScenarioWithGemini(text: string): Promise<StoredScenario | 
             description: { type: "STRING" },
             difficulty: { type: "STRING" },
             diagnosis: { type: "STRING" },
+            diagnosisKeywords: { type: "ARRAY", items: { type: "STRING" } },
             answerRules: { type: "ARRAY", items: { type: "OBJECT", properties: { keywords: { type: "ARRAY", items: { type: "STRING" } }, answer: { type: "STRING" } }, required: ["keywords", "answer"] } },
           },
-          required: ["patient", "description", "difficulty", "diagnosis", "answerRules"],
+          required: ["patient", "description", "difficulty", "diagnosis", "diagnosisKeywords", "answerRules"],
         },
       },
     });
@@ -84,6 +87,7 @@ async function createScenarioWithGemini(text: string): Promise<StoredScenario | 
       description: generated.description,
       difficulty: generated.difficulty,
       diagnosis: generated.diagnosis,
+      diagnosisKeywords: generated.diagnosisKeywords,
       answerRules: generated.answerRules,
       defaultAnswer: "Я не понял вопрос.",
     };
@@ -112,15 +116,18 @@ export async function POST(request: Request) {
     newScenario.id = `scenario-${scenarioNumber}-${Date.now()}`;
     newScenario.title = `Ситуационная задача №${scenarioNumber}`;
     const mediaDirectory = path.join(process.cwd(), "public", "uploads");
-    await mkdir(mediaDirectory, { recursive: true });
+    if (!isSupabaseConfigured()) await mkdir(mediaDirectory, { recursive: true });
     const media: StoredScenario["media"] = [];
 
     for (const [file, type, label] of [[xrayFile, "xray", "Рентгеновский снимок"], [ecgFile, "ecg", "ЭКГ"]] as const) {
       if (!(file instanceof File) || file.size === 0) continue;
       const extension = path.extname(file.name) || ".bin";
       const fileName = `${newScenario.id}-${type}-${Date.now()}${extension}`;
-      await writeFile(path.join(mediaDirectory, fileName), Buffer.from(await file.arrayBuffer()));
-      media.push({ type, label, url: `/uploads/${fileName}` });
+      const url = isSupabaseConfigured()
+        ? await uploadSupabaseMedia(file, newScenario.id, type)
+        : `/uploads/${fileName}`;
+      if (!isSupabaseConfigured()) await writeFile(path.join(mediaDirectory, fileName), Buffer.from(await file.arrayBuffer()));
+      media.push({ type, label, url: url as string });
     }
 
     if (media.length > 0) {

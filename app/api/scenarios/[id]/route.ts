@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { readScenarios } from "../../../data/scenario-store";
+import { readScenarios, removeScenario } from "../../../data/scenario-store";
+import { isSupabaseConfigured, saveSupabaseScenario, uploadSupabaseMedia } from "../../../data/supabase-store";
 import type { ScenarioDefinition } from "../../../data/scenarios";
 
 const scenariosPath = path.join(process.cwd(), "app", "data", "scenarios.json");
@@ -17,7 +18,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     return NextResponse.json({ error: "Сценарий не найден" }, { status: 404 });
   }
 
-  await writeFile(scenariosPath, `${JSON.stringify(remaining, null, 2)}\n`, "utf8");
+  await removeScenario(id);
   return NextResponse.json({ deleted: id });
 }
 
@@ -37,12 +38,17 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const scenario = scenarios.find((item) => item.id === id);
     if (!scenario) return NextResponse.json({ error: "Сценарий не найден" }, { status: 404 });
 
-    const uploadDirectory = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDirectory, { recursive: true });
-    const extension = path.extname(file.name) || ".bin";
-    const fileName = `${id}-${type}-${Date.now()}${extension}`;
-    const url = `/uploads/${fileName}`;
-    await writeFile(path.join(uploadDirectory, fileName), Buffer.from(await file.arrayBuffer()));
+    let url: string;
+    if (isSupabaseConfigured()) {
+      url = (await uploadSupabaseMedia(file, id, type)) as string;
+    } else {
+      const uploadDirectory = path.join(process.cwd(), "public", "uploads");
+      await mkdir(uploadDirectory, { recursive: true });
+      const extension = path.extname(file.name) || ".bin";
+      const fileName = `${id}-${type}-${Date.now()}${extension}`;
+      url = `/uploads/${fileName}`;
+      await writeFile(path.join(uploadDirectory, fileName), Buffer.from(await file.arrayBuffer()));
+    }
 
   scenario.media = [...(scenario.media ?? []).filter((item) => item.type !== type), {
     type,
@@ -64,7 +70,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   if (type === "xray") scenario.xrayImage = url;
-    await writeFile(scenariosPath, `${JSON.stringify(scenarios, null, 2)}\n`, "utf8");
+    if (isSupabaseConfigured()) {
+      await saveSupabaseScenario(scenario);
+    } else {
+      await writeFile(scenariosPath, `${JSON.stringify(scenarios, null, 2)}\n`, "utf8");
+    }
     return NextResponse.json({ scenario });
   } catch (error) {
     console.error("Media replacement failed", error);
