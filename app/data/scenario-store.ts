@@ -87,10 +87,6 @@ export async function readScenarios() {
   const scenarios = JSON.parse(await readFile(scenariosPath, "utf8")) as StoredScenario[];
   const normalizedScenarios = [...new Map(scenarios.map(normalizeLegacyImport).map((scenario) => [scenario.id, scenario])).values()];
 
-  if (JSON.stringify(scenarios) !== JSON.stringify(normalizedScenarios)) {
-    await writeFile(scenariosPath, `${JSON.stringify(normalizedScenarios, null, 2)}\n`, "utf8");
-  }
-
   return normalizedScenarios;
 }
 
