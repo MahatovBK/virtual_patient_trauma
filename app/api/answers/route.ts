@@ -33,6 +33,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ answer: "Что со мной, доктор?", promptForDiagnosis: true });
   }
 
+  const mediaRule = scenario.answerRules.find((rule) =>
+    rule.imageUrl && rule.keywords.some((keyword) => question.includes(keyword)),
+  );
+  if (mediaRule?.imageUrl) {
+    return NextResponse.json({
+      answer: mediaRule.answer ?? "Снимок готов.",
+      imageUrl: mediaRule.imageUrl,
+      provider: "scenario-media",
+    });
+  }
+
   if (process.env.GEMINI_API_KEY) {
     try {
       const aiData = await requestGemini(process.env.GEMINI_MODEL ?? "gemini-3.6-flash", process.env.GEMINI_API_KEY, {
