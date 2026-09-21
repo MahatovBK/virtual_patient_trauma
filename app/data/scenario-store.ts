@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ScenarioDefinition } from "./scenarios";
+import bundledScenarios from "./scenarios.json";
 
 const scenariosPath = path.join(process.cwd(), "app", "data", "scenarios.json");
 
@@ -84,7 +85,12 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
 }
 
 export async function readScenarios() {
-  const scenarios = JSON.parse(await readFile(scenariosPath, "utf8")) as StoredScenario[];
+  let scenarios: StoredScenario[];
+  try {
+    scenarios = JSON.parse(await readFile(scenariosPath, "utf8")) as StoredScenario[];
+  } catch {
+    scenarios = bundledScenarios as StoredScenario[];
+  }
   const normalizedScenarios = [...new Map(scenarios.map(normalizeLegacyImport).map((scenario) => [scenario.id, scenario])).values()];
 
   return normalizedScenarios;
