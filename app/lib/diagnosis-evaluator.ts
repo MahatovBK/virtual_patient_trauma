@@ -64,8 +64,8 @@ export function evaluateDiagnosis(userText: string, scenario: ScenarioDefinition
   let isPartial = false;
 
   if (isShoulderDislocation) {
-    // For "Закрытый свежий передний вывих правого плеча":
-    // Core terms: вывих, плеч, прав, передн
+    // For "Закрытый свежий вывих правого плеча":
+    // Core terms: вывих, плеч, прав
     const hasCore = normalizedUser.includes("вывих") && normalizedUser.includes("плеч");
     const isFull = matchedCount === totalCount && totalCount > 0;
     if (isFull) {

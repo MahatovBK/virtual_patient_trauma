@@ -1,3 +1,4 @@
+-- 1. Таблица сценариев
 create table if not exists public.scenarios (
   id text primary key,
   title text not null,
@@ -16,23 +17,30 @@ create table if not exists public.scenarios (
 
 alter table public.scenarios enable row level security;
 
-create policy "public can read scenarios"
-  on public.scenarios for select
-  using (true);
+drop policy if exists "public can read scenarios" on public.scenarios;
+create policy "public can read scenarios" on public.scenarios for select using (true);
 
+drop policy if exists "public can insert scenarios" on public.scenarios;
+create policy "public can insert scenarios" on public.scenarios for insert with check (true);
+
+drop policy if exists "public can update scenarios" on public.scenarios;
+create policy "public can update scenarios" on public.scenarios for update using (true);
+
+drop policy if exists "public can delete scenarios" on public.scenarios;
+create policy "public can delete scenarios" on public.scenarios for delete using (true);
+
+-- 2. Хранилище файлов (Storage)
 insert into storage.buckets (id, name, public)
 values ('scenario-media', 'scenario-media', true)
 on conflict (id) do nothing;
 
-create policy "public can read scenario media"
-  on storage.objects for select
-  using (bucket_id = 'scenario-media');
+drop policy if exists "public can read scenario media" on storage.objects;
+create policy "public can read scenario media" on storage.objects for select using (bucket_id = 'scenario-media');
 
-create policy "server can upload scenario media"
-  on storage.objects for insert
-  with check (bucket_id = 'scenario-media');
+drop policy if exists "server can upload scenario media" on storage.objects;
+create policy "server can upload scenario media" on storage.objects for insert with check (bucket_id = 'scenario-media');
 
--- Таблица для хранения результатов и статистики студентов
+-- 3. Таблица для хранения результатов и статистики студентов
 create table if not exists public.student_sessions (
   id text primary key,
   student_name text not null, -- Фамилия, Имя
@@ -54,18 +62,27 @@ create table if not exists public.student_sessions (
 
 alter table public.student_sessions enable row level security;
 
-create policy "public can read student_sessions"
-  on public.student_sessions for select
-  using (true);
+drop policy if exists "public can read student_sessions" on public.student_sessions;
+create policy "public can read student_sessions" on public.student_sessions for select using (true);
 
-create policy "public can insert student_sessions"
-  on public.student_sessions for insert
-  with check (true);
+drop policy if exists "public can insert student_sessions" on public.student_sessions;
+create policy "public can insert student_sessions" on public.student_sessions for insert with check (true);
 
-create policy "public can update student_sessions"
-  on public.student_sessions for update
-  using (true);
+drop policy if exists "public can update student_sessions" on public.student_sessions;
+create policy "public can update student_sessions" on public.student_sessions for update using (true);
 
-create policy "public can delete student_sessions"
-  on public.student_sessions for delete
-  using (true);
+drop policy if exists "public can delete student_sessions" on public.student_sessions;
+create policy "public can delete student_sessions" on public.student_sessions for delete using (true);
+
+-- 4. Обновление эталонного диагноза первого сценария в базе данных
+update public.scenarios
+set diagnosis = 'Закрытый свежий вывих правого плеча',
+    diagnosis_keywords = '["закрыт", "свеж", "вывих", "прав", "плеч"]'::jsonb,
+    diagnosis_terms = '[
+      {"term": "закрытый", "keywords": ["закрыт"]},
+      {"term": "свежий", "keywords": ["свеж"]},
+      {"term": "вывих", "keywords": ["вывих"]},
+      {"term": "правого", "keywords": ["прав"]},
+      {"term": "плеча", "keywords": ["плеч"]}
+    ]'::jsonb
+where id = 'shoulder-dislocation';

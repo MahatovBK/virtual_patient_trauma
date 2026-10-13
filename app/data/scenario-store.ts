@@ -60,12 +60,11 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
       difficulty: "Средний",
       patient: "Пациент К., 21 год",
       xrayImage: "/xray-right-shoulder.svg",
-      diagnosis: "Закрытый свежий передний вывих правого плеча",
-      diagnosisKeywords: ["закрыт", "свеж", "передн", "вывих", "прав", "плеч"],
+      diagnosis: "Закрытый свежий вывих правого плеча",
+      diagnosisKeywords: ["закрыт", "свеж", "вывих", "прав", "плеч"],
       diagnosisTerms: [
         { term: "закрытый", keywords: ["закрыт"] },
         { term: "свежий", keywords: ["свеж"] },
-        { term: "передний", keywords: ["передн"] },
         { term: "вывих", keywords: ["вывих"] },
         { term: "правого", keywords: ["прав"] },
         { term: "плеча", keywords: ["плеч"] },
@@ -102,16 +101,22 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
 }
 
 export async function readScenarios() {
+  let scenarios: StoredScenario[];
   if (isSupabaseConfigured()) {
-    return (await readSupabaseScenarios()) ?? [];
+    const fromSupabase = await readSupabaseScenarios();
+    if (fromSupabase && fromSupabase.length > 0) {
+      scenarios = fromSupabase;
+    } else {
+      scenarios = bundledScenarios as StoredScenario[];
+    }
+  } else {
+    try {
+      scenarios = JSON.parse(await readFile(scenariosPath, "utf8")) as StoredScenario[];
+    } catch {
+      scenarios = bundledScenarios as StoredScenario[];
+    }
   }
 
-  let scenarios: StoredScenario[];
-  try {
-    scenarios = JSON.parse(await readFile(scenariosPath, "utf8")) as StoredScenario[];
-  } catch {
-    scenarios = bundledScenarios as StoredScenario[];
-  }
   const normalizedScenarios = [...new Map(scenarios.map(normalizeLegacyImport).map((scenario) => [scenario.id, scenario])).values()];
 
   return normalizedScenarios;
