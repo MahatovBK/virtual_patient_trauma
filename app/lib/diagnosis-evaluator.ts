@@ -77,11 +77,13 @@ export function evaluateDiagnosis(userText: string, scenario: ScenarioDefinition
       isPartial = true;
     }
   } else if (isAnkleFracture) {
-    const hasCore = normalizedUser.includes("перелом") && (normalizedUser.includes("лодыж") || normalizedUser.includes("голеностоп"));
+    // For "Закрытый перелом наружной лодыжки левой голени без смещения":
+    // Core terms: перелом, лодыж, лев, голен
+    const hasCore = normalizedUser.includes("перелом") && (normalizedUser.includes("лодыж") || normalizedUser.includes("голен"));
     const isFull = matchedCount === totalCount && totalCount > 0;
     if (isFull) {
       isCorrect = true;
-    } else if (hasCore && matchedCount >= 3) {
+    } else if (hasCore && matchedCount >= 5) {
       isCorrect = true;
       isPartial = matchedCount < totalCount;
     } else if (hasCore || matchedCount >= 2) {

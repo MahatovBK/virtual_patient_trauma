@@ -89,17 +89,26 @@ export default function AdminPage() {
   }
 
   async function replaceMedia(scenarioId: string, mediaType: "xray" | "ecg") {
-    const targetFile = selectedMedia[`${scenarioId}-${mediaType}`];
+    const key = `${scenarioId}-${mediaType}`;
+    const targetFile = selectedMedia[key];
     if (!targetFile) return;
+    setMessage("");
+    setError("");
     const formData = new FormData();
     formData.append("file", targetFile);
     formData.append("mediaType", mediaType);
-    const response = await fetch(`/api/scenarios/${scenarioId}`, { method: "PATCH", body: formData });
-    const data = await response.json().catch(() => ({}));
-    if (response.ok) {
-      setMessage("Изображение заменено.");
-    } else {
-      setError(data.error ?? "Не удалось заменить изображение.");
+    try {
+      const response = await fetch(`/api/scenarios/${scenarioId}`, { method: "PATCH", body: formData });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setMessage(`Файл (${mediaType === "xray" ? "рентген" : "ЭКГ"}) успешно заменён для сценария.`);
+        setSelectedMedia((prev) => ({ ...prev, [key]: null }));
+        await loadScenarios();
+      } else {
+        setError(data.error ?? "Не удалось заменить изображение.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка при замене файла");
     }
   }
 
@@ -375,12 +384,33 @@ export default function AdminPage() {
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       {(["xray", "ecg"] as const).map((mediaType) => {
                         const key = `${scenario.id}-${mediaType}`;
+                        const isFileSelected = Boolean(selectedMedia[key]);
                         return (
-                          <div key={mediaType}>
-                            <label className="block text-xs font-medium uppercase text-slate-500">Заменить {mediaType === "xray" ? "рентген" : "ЭКГ"}</label>
-                            <input type="file" accept="image/*,.pdf,application/pdf" onChange={(event) => setSelectedMedia((items) => ({ ...items, [key]: event.target.files?.[0] ?? null }))} className="mt-2 block w-full text-sm" />
-                            <button onClick={() => void replaceMedia(scenario.id, mediaType)} disabled={!selectedMedia[key]} className="mt-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white disabled:bg-slate-300">
-                              Заменить файл
+                          <div key={mediaType} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <label className="block text-xs font-semibold uppercase text-slate-700">
+                              Заменить {mediaType === "xray" ? "рентген" : "ЭКГ"}
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf,application/pdf"
+                              onChange={(event) => setSelectedMedia((items) => ({ ...items, [key]: event.target.files?.[0] ?? null }))}
+                              className="mt-2 block w-full text-xs text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-blue-50 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+                            />
+                            {isFileSelected && (
+                              <p className="mt-1 text-[11px] font-medium text-blue-700 truncate">
+                                Выбран: {selectedMedia[key]?.name}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => void replaceMedia(scenario.id, mediaType)}
+                              disabled={!isFileSelected}
+                              className={`mt-2.5 w-full rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                                isFileSelected
+                                  ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-xs"
+                                  : "border border-slate-200 bg-slate-200 text-slate-400 cursor-not-allowed"
+                              }`}
+                            >
+                              {isFileSelected ? "⬆️ Загрузить и заменить" : "Сначала выберите файл выше"}
                             </button>
                           </div>
                         );

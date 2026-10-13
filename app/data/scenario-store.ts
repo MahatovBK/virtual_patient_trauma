@@ -27,7 +27,7 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
       description: "Пациент получил травму правого плеча во время борьбы. Есть резкая боль, деформация и резкое ограничение движений.",
       difficulty: "Средний",
       patient: "Пациент К., 21 год",
-      xrayImage: scenario.xrayImage || "/xray-right-shoulder.svg",
+      xrayImage: "/xray-right-shoulder.jpeg",
       diagnosis: "Закрытый свежий вывих правого плеча",
       diagnosisKeywords: ["закрыт", "свеж", "вывих", "прав", "плеч"],
       diagnosisTerms: [
@@ -53,14 +53,14 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
         { keywords: ["температур", "озноб", "лихорад"], answer: "Температуры и озноба нет." },
         { keywords: ["давлен", "гипертон"], answer: "Давление обычно нормальное, гипертонией не страдаю." },
         { keywords: ["аллерг", "препарат", "лекарств"], answer: "Аллергии на лекарственные препараты не припоминаю." },
-        { keywords: ["рентген", "снимок", "снимке", "исследован"], answer: "Рентгеновский снимок правого плечевого сустава готов.", imageUrl: "/xray-right-shoulder.svg" },
+        { keywords: ["рентген", "снимок", "снимке", "исследован"], answer: "Рентгеновский снимок правого плечевого сустава готов.", imageUrl: "/xray-right-shoulder.jpeg" },
         { keywords: ["другие", "остальн", "температур", "систем"], answer: "По остальным органам и системам без особенностей." },
       ],
       defaultAnswer: "Я не понял вопрос.",
     };
   }
 
-  const isAnkleCase = scenario.id.startsWith("scenario-2-") || /лодыж|голеностоп/i.test(source);
+  const isAnkleCase = scenario.id.startsWith("scenario-2-") || /лодыж|голеностоп|голен/i.test(source);
   if (isAnkleCase) {
     return {
       ...scenario,
@@ -69,13 +69,16 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
       patient: "Пациент С., 40 лет",
       description: "Травма левого голеностопного сустава после падения.",
       difficulty: "Средний",
-      diagnosis: "Перелом лодыжек левого голеностопного сустава",
-      diagnosisKeywords: ["перелом", "лодыж", "голеностоп"],
+      diagnosis: "Закрытый перелом наружной лодыжки левой голени без смещения",
+      diagnosisKeywords: ["закрыт", "перелом", "наружн", "лодыж", "лев", "голен", "без смещен"],
       diagnosisTerms: [
+        { term: "закрытый", keywords: ["закрыт"] },
         { term: "перелом", keywords: ["перелом"] },
-        { term: "лодыжек", keywords: ["лодыж"] },
-        { term: "левого", keywords: ["лев"] },
-        { term: "голеностопного сустава", keywords: ["голеностоп"] },
+        { term: "наружной", keywords: ["наружн"] },
+        { term: "лодыжки", keywords: ["лодыжк", "лодыж"] },
+        { term: "левой", keywords: ["лев"] },
+        { term: "голени", keywords: ["голен"] },
+        { term: "без смещения", keywords: ["без смещен", "без смещ"] },
       ],
       answerRules: [
         { keywords: ["привет", "здравств", "добрый", "доброе"], answerVariants: ["Здравствуйте. Сильно болит левая нога.", "Здравствуйте, доктор. Я подвернул ногу и теперь почти не могу наступать."] },
