@@ -2,38 +2,37 @@ import { NextResponse } from "next/server";
 import type { ScenarioDefinition } from "../../data/scenarios";
 import { readScenarios } from "../../data/scenario-store";
 import { requestGemini } from "../../lib/gemini";
+import { evaluateDiagnosis, isDiagnosisStatement } from "../../lib/diagnosis-evaluator";
 
 export async function POST(request: Request) {
   const body = await request.json();
   const scenarios = (await readScenarios()) as ScenarioDefinition[];
   const scenario = scenarios.find((item) => item.id === body.scenarioId);
-  const question = typeof body.question === "string" ? body.question.trim().toLowerCase() : "";
+  const rawQuestion = typeof body.question === "string" ? body.question.trim() : "";
+  const question = rawQuestion.toLowerCase();
   const questionNumber = typeof body.questionNumber === "number" ? body.questionNumber : 0;
 
   if (!scenario || !question) {
     return NextResponse.json({ error: "Нужны scenarioId и question" }, { status: 400 });
   }
 
-  const diagnosisWasStated = /диагноз|считаю|предполагаю|это вывих|это перелом/i.test(question);
-  if (diagnosisWasStated) {
-    const diagnosis = scenario.diagnosis?.toLowerCase() ?? "";
-    const correctDiagnosis = (diagnosis.includes("вывих") && question.includes("вывих") && question.includes("плеч"))
-      || (diagnosis.includes("перелом") && question.includes("перелом") && (question.includes("лодыж") || question.includes("голеностоп")))
-      || (diagnosis.includes("перелом") && question.includes("перелом") && question.includes("запяст"))
-      || Boolean(scenario.diagnosisKeywords?.length && scenario.diagnosisKeywords.every((keyword) => question.includes(keyword)));
-
+  // Проверка: выставил ли студент диагноз
+  if (isDiagnosisStatement(rawQuestion)) {
+    const evaluation = evaluateDiagnosis(rawQuestion, scenario);
     return NextResponse.json({
-      answer: correctDiagnosis
-        ? `Диагноз правильный: ${scenario.diagnosis}. Сценарий завершён.`
-        : `Диагноз неправильный. Правильный диагноз: ${scenario.diagnosis ?? "указан в сценарии"}. Сценарий завершён.`,
-      diagnosisResult: correctDiagnosis ? "correct" : "incorrect",
+      answer: evaluation.feedback,
+      diagnosisResult: evaluation.isCorrect ? "correct" : evaluation.isPartial ? "partial" : "incorrect",
       scenarioCompleted: true,
+      evaluation,
     });
   }
 
   if (questionNumber === 10) {
     return NextResponse.json({ answer: "Что со мной, доктор?", promptForDiagnosis: true });
   }
+
+  // Проверка: запрошен ли снимок (рентген, ЭКГ, КТ и т.д.)
+  const isImageInquiry = /рентген|снимок|снимк|экг|кардиограмм|кт|мрт|исследован/i.test(question);
 
   const mediaRule = scenario.answerRules.find((rule) =>
     rule.imageUrl && rule.keywords.some((keyword) => question.includes(keyword)),
@@ -43,6 +42,7 @@ export async function POST(request: Request) {
       answer: mediaRule.answer ?? "Снимок готов.",
       imageUrl: mediaRule.imageUrl,
       provider: "scenario-media",
+      imageRequested: true,
     });
   }
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       });
       const aiAnswer = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
       if (typeof aiAnswer === "string" && aiAnswer.trim()) {
-        return NextResponse.json({ answer: aiAnswer.trim(), provider: "gemini" });
+        return NextResponse.json({ answer: aiAnswer.trim(), provider: "gemini", imageRequested: isImageInquiry });
       }
     } catch (error) {
       console.error("Gemini request failed; using scenario rules", error);
@@ -76,5 +76,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     answer: answer ?? scenario.defaultAnswer,
     imageUrl: matchingRule?.imageUrl,
+    imageRequested: Boolean(matchingRule?.imageUrl || isImageInquiry),
   });
 }

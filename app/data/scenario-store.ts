@@ -22,6 +22,12 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
       difficulty: "Средний",
       diagnosis: "Перелом лодыжек левого голеностопного сустава",
       diagnosisKeywords: ["перелом", "лодыж", "голеностоп"],
+      diagnosisTerms: [
+        { term: "перелом", keywords: ["перелом"] },
+        { term: "лодыжек", keywords: ["лодыж"] },
+        { term: "левого", keywords: ["лев"] },
+        { term: "голеностопного сустава", keywords: ["голеностоп"] },
+      ],
       answerRules: [
         { keywords: ["привет", "здравств", "добрый", "доброе"], answerVariants: ["Здравствуйте. Сильно болит левая нога.", "Здравствуйте, доктор. Я подвернул ногу и теперь почти не могу наступать."] },
         { keywords: ["когда", "начал", "сколько времени", "давно"], answerVariants: ["Это случилось около двух часов назад.", "Травма произошла примерно два часа назад."] },
@@ -54,7 +60,16 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
       difficulty: "Средний",
       patient: "Пациент К., 21 год",
       xrayImage: "/xray-right-shoulder.svg",
-      diagnosis: "Передний вывих правого плечевого сустава",
+      diagnosis: "Закрытый свежий передний вывих правого плеча",
+      diagnosisKeywords: ["закрыт", "свеж", "передн", "вывих", "прав", "плеч"],
+      diagnosisTerms: [
+        { term: "закрытый", keywords: ["закрыт"] },
+        { term: "свежий", keywords: ["свеж"] },
+        { term: "передний", keywords: ["передн"] },
+        { term: "вывих", keywords: ["вывих"] },
+        { term: "правого", keywords: ["прав"] },
+        { term: "плеча", keywords: ["плеч"] },
+      ],
       answerRules: [
         { keywords: ["привет", "здравств", "добрый", "доброе", "доброе утро"], answerVariants: ["Здравствуйте. У меня сильно болит правое плечо.", "Привет. Я повредил правое плечо и почти не могу им двигать."] },
         { keywords: ["когда", "начал", "сколько времени", "давно"], answerVariants: ["Травма произошла около 30 минут назад, во время соревнований по борьбе.", "Это случилось примерно полчаса назад на соревнованиях."] },
