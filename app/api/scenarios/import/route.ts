@@ -141,6 +141,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ scenario: newScenario }, { status: 201 });
   } catch (error) {
     console.error("Scenario import failed", error);
-    return NextResponse.json({ error: "Не удалось создать сценарий. Проверьте текст задачи и повторите попытку." }, { status: 500 });
+    const reason = error instanceof Error ? error.message : typeof error === "object" && error && "message" in error ? String((error as { message: unknown }).message) : String(error);
+    return NextResponse.json({ error: `Не удалось создать сценарий: ${reason}` }, { status: 500 });
   }
 }
