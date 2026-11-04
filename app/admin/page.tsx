@@ -16,6 +16,9 @@ export default function AdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [selectedMedia, setSelectedMedia] = useState<Record<string, File | null>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editDiagnosis, setEditDiagnosis] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   // Студенческая статистика
@@ -109,6 +112,38 @@ export default function AdminPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка при замене файла");
+    }
+  }
+
+  async function startEditing(scenarioId: string) {
+    setMessage("");
+    setError("");
+    const response = await fetch(`/api/scenarios/${scenarioId}`);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setError(data.error ?? "Не удалось загрузить текст задачи.");
+      return;
+    }
+    setEditText(data.description ?? "");
+    setEditDiagnosis(data.diagnosis ?? "");
+    setEditingId(scenarioId);
+  }
+
+  async function saveEditing() {
+    if (!editingId) return;
+    setMessage("");
+    setError("");
+    const response = await fetch(`/api/scenarios/${editingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: editText, diagnosis: editDiagnosis }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      setMessage("Текст задачи сохранён.");
+      setEditingId(null);
+    } else {
+      setError(data.error ?? "Не удалось сохранить изменения.");
     }
   }
 
@@ -377,10 +412,27 @@ export default function AdminPage() {
                         <h3 className="font-semibold text-slate-900">{scenario.title}</h3>
                         <p className="mt-1 text-sm text-slate-500">Сложность: {scenario.difficulty}</p>
                       </div>
-                      <button onClick={() => void deleteScenario(scenario.id)} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
-                        Удалить
-                      </button>
+                      <div className="flex gap-2">
+                        <button onClick={() => void startEditing(scenario.id)} className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">
+                          Редактировать текст
+                        </button>
+                        <button onClick={() => void deleteScenario(scenario.id)} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
+                          Удалить
+                        </button>
+                      </div>
                     </div>
+                    {editingId === scenario.id && (
+                      <div className="mt-4 space-y-3 rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+                        <label className="block text-xs font-semibold uppercase text-slate-700">Текст клинической задачи (студенту не показывается)</label>
+                        <textarea value={editText} onChange={(event) => setEditText(event.target.value)} rows={10} className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
+                        <label className="block text-xs font-semibold uppercase text-slate-700">Эталонный диагноз</label>
+                        <input value={editDiagnosis} onChange={(event) => setEditDiagnosis(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm" />
+                        <div className="flex gap-2">
+                          <button onClick={() => void saveEditing()} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Сохранить</button>
+                          <button onClick={() => setEditingId(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-white">Отмена</button>
+                        </div>
+                      </div>
+                    )}
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       {(["xray", "ecg"] as const).map((mediaType) => {
                         const key = `${scenario.id}-${mediaType}`;

@@ -22,6 +22,44 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
   return NextResponse.json({ deleted: id });
 }
 
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const scenario = (await readScenarios() as ScenarioDefinition[]).find((item) => item.id === id);
+  if (!scenario) return NextResponse.json({ error: "Сценарий не найден" }, { status: 404 });
+  return NextResponse.json({ description: scenario.description, diagnosis: scenario.diagnosis ?? "" });
+}
+
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await context.params;
+    const body = await request.json();
+    const description = typeof body.description === "string" ? body.description.trim() : "";
+    const diagnosis = typeof body.diagnosis === "string" ? body.diagnosis.trim() : "";
+    if (!description) return NextResponse.json({ error: "Текст задачи не может быть пустым" }, { status: 400 });
+
+    const scenarios = await readScenarios() as ScenarioDefinition[];
+    const scenario = scenarios.find((item) => item.id === id);
+    if (!scenario) return NextResponse.json({ error: "Сценарий не найден" }, { status: 404 });
+
+    scenario.description = description;
+    if (diagnosis !== (scenario.diagnosis ?? "")) {
+      scenario.diagnosis = diagnosis;
+      scenario.diagnosisTerms = undefined;
+      scenario.diagnosisKeywords = undefined;
+    }
+
+    if (isSupabaseConfigured()) {
+      await saveSupabaseScenario(scenario);
+    } else {
+      await writeFile(scenariosPath, `${JSON.stringify(scenarios, null, 2)}\n`, "utf8");
+    }
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : typeof error === "object" && error && "message" in error ? String((error as { message: unknown }).message) : String(error);
+    return NextResponse.json({ error: `Не удалось сохранить: ${reason}` }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
