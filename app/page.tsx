@@ -156,7 +156,6 @@ export default function Home() {
 
     const currentQuestion = question.trim();
     const nextQuestionCount = questionsCount + 1;
-    setQuestionsCount(nextQuestionCount);
 
     setMessages((currentMessages) => [...currentMessages, { role: "student", text: currentQuestion }]);
     setQuestion("");
@@ -177,6 +176,8 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Не удалось получить ответ");
 
+      // Непонятые вопросы не засчитываются в счётчик
+      if (data.understood !== false) setQuestionsCount(nextQuestionCount);
       // Проверяем запрос снимка
       const wasImageInquiry = imageRequested || Boolean(data.imageRequested) || Boolean(data.imageUrl);
       if (wasImageInquiry && !imageRequested) {

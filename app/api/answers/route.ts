@@ -48,13 +48,23 @@ export async function POST(request: Request) {
 
   if (process.env.GEMINI_API_KEY) {
     try {
-      const aiData = await requestGemini(process.env.GEMINI_MODEL ?? "gemini-3.6-flash", process.env.GEMINI_API_KEY, {
+      const aiRequest = {
         systemInstruction: {
-            parts: [{ text: `Ты виртуальный пациент в учебной клинической симуляции. Отвечай только от лица пациента, естественно и понятно, полными предложениями. Отвечай по существу заданного вопроса, обычно 2-5 предложений. Не обрывай ответ, не называй диагноз и не давай подсказок студенту. Опирайся ТОЛЬКО на текст клинической задачи ниже: не придумывай других жалоб, болезней и анамнеза. Если о каком-то симптоме или органе в задаче не сказано, пациент отвечает, что этого нет и всё в порядке. Строку с правильным диагнозом пациенту знать нельзя.\nКлиническая задача: ${scenario.description.replace(/правильн[^\n]*диагноз[^\n]*/gi, "")}\nПациент: ${scenario.patient}.` }],
+            parts: [{ text: `Ты виртуальный пациент в учебной клинической симуляции. Отвечай только от лица пациента, естественно и понятно, полными предложениями. Отвечай по существу заданного вопроса, обычно 2-5 предложений. Не обрывай ответ, не называй диагноз и не давай подсказок студенту. Опирайся ТОЛЬКО на текст клинической задачи ниже: не придумывай других жалоб, болезней и анамнеза. Если о каком-то симптоме или органе в задаче не сказано, пациент отвечает, что этого нет и всё в порядке. Строку с правильным диагнозом пациенту знать нельзя. Отвечай на том языке, на котором задан вопрос.\nКлиническая задача: ${scenario.description.replace(/правильн[^\n]*диагноз[^\n]*/gi, "")}\nПациент: ${scenario.patient}.` }],
         },
-        contents: [{ role: "user", parts: [{ text: body.question }] }],
+        contents: [{ role: "user" as const, parts: [{ text: body.question }] }],
         generationConfig: { temperature: 0.65, maxOutputTokens: 2048 },
-      });
+      };
+      const model = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
+      let aiData;
+      try {
+        aiData = await requestGemini(model, process.env.GEMINI_API_KEY, aiRequest);
+      } catch (firstError) {
+        // Одна повторная попытка при кратковременном лимите запросов (429)
+        if (!(firstError instanceof Error) || !firstError.message.includes("429")) throw firstError;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        aiData = await requestGemini(model, process.env.GEMINI_API_KEY, aiRequest);
+      }
       const aiAnswer = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
       if (typeof aiAnswer === "string" && aiAnswer.trim()) {
         return NextResponse.json({ answer: aiAnswer.trim(), provider: "gemini", imageRequested: isImageInquiry });
@@ -75,6 +85,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     answer: answer ?? scenario.defaultAnswer,
+    understood: Boolean(answer),
     imageUrl: matchingRule?.imageUrl,
     imageRequested: Boolean(matchingRule?.imageUrl || isImageInquiry),
   });
