@@ -101,7 +101,6 @@ function normalizeLegacyImport(scenario: StoredScenario): StoredScenario {
   return {
     ...scenario,
     title: scenario.title.split(".")[0] || "Новая клиническая задача",
-    description: "Клинический случай загружен. Уточните у пациента жалобы, время начала и обстоятельства заболевания.",
     patient: scenario.patient.length > 70 ? "Пациент из клинической задачи" : scenario.patient,
   };
 }
