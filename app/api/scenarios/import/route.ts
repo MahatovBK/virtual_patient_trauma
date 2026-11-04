@@ -115,6 +115,13 @@ export async function POST(request: Request) {
     const scenarioNumber = existingScenarios.length + 1;
     newScenario.id = `scenario-${scenarioNumber}-${Date.now()}`;
     newScenario.title = `Ситуационная задача №${scenarioNumber}`;
+    // Полный текст задачи хранится только на сервере и служит источником фактов для пациента.
+    newScenario.description = text.trim();
+    const diagnosisMatch = text.match(/(?:правильн\p{L}*\s+формулировк\p{L}*\s+диагноза|эталонн\p{L}*\s+диагноз|диагноз)\s*[:\-–]\s*([^\n]+)/iu);
+    if (diagnosisMatch) {
+      newScenario.diagnosis = diagnosisMatch[1].trim().replace(/[.\s]+$/, "");
+      newScenario.diagnosisKeywords = undefined;
+    }
     const mediaDirectory = path.join(process.cwd(), "public", "uploads");
     if (!isSupabaseConfigured()) await mkdir(mediaDirectory, { recursive: true });
     const media: StoredScenario["media"] = [];

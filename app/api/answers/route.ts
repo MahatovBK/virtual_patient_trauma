@@ -50,10 +50,10 @@ export async function POST(request: Request) {
     try {
       const aiData = await requestGemini(process.env.GEMINI_MODEL ?? "gemini-3.6-flash", process.env.GEMINI_API_KEY, {
         systemInstruction: {
-            parts: [{ text: `Ты виртуальный пациент в учебной клинической симуляции. Отвечай только от лица пациента, естественно и понятно, полными предложениями. Отвечай по существу заданного вопроса, обычно 2-5 предложений. Не обрывай ответ, не ставь диагноз, не давай подсказок студенту и не придумывай факты, которых нет в сценарии. Сценарий: ${scenario.description}. Пациент: ${scenario.patient}.` }],
+            parts: [{ text: `Ты виртуальный пациент в учебной клинической симуляции. Отвечай только от лица пациента, естественно и понятно, полными предложениями. Отвечай по существу заданного вопроса, обычно 2-5 предложений. Не обрывай ответ, не называй диагноз и не давай подсказок студенту. Опирайся ТОЛЬКО на текст клинической задачи ниже: не придумывай других жалоб, болезней и анамнеза. Если о каком-то симптоме или органе в задаче не сказано, пациент отвечает, что этого нет и всё в порядке. Строку с правильным диагнозом пациенту знать нельзя.\nКлиническая задача: ${scenario.description.replace(/правильн[^\n]*диагноз[^\n]*/gi, "")}\nПациент: ${scenario.patient}.` }],
         },
         contents: [{ role: "user", parts: [{ text: body.question }] }],
-        generationConfig: { temperature: 0.65, maxOutputTokens: 600 },
+        generationConfig: { temperature: 0.65, maxOutputTokens: 2048 },
       });
       const aiAnswer = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
       if (typeof aiAnswer === "string" && aiAnswer.trim()) {
